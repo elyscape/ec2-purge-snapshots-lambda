@@ -20,8 +20,8 @@ WEEKS - The number of weeks to keep ONE snapshot per week
 
 MONTHS - The number of months to keep ONE snapshot per month
 
-REGION - AWS region in which the snapshots exist
-eg. "us-east-1"
+REGIONS - AWS regions in which the snapshots exist
+eg. ["us-east-1"]
 
 TIMEZONE - The timezone in which daily snapshots will be kept at midnight
 eg. "America/Denver"

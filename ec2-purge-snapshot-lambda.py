@@ -27,8 +27,8 @@ WEEKS = 0
 # The number of months to keep ONE snapshot per month
 MONTHS = 0
 
-# AWS region in which the snapshots exist
-REGION = "us-east-1"
+# AWS regions in which the snapshots exist
+REGIONS = ["us-east-1"]
 
 # The timezone in which daily snapshots will be kept at midnight
 TIMEZONE = "UTC"
@@ -179,26 +179,27 @@ def main(event, context):
                           )
     NOOP = event['noop'] if 'noop' in event else False
     NOT_REALLY_STR = " (not really)" if NOOP is not False else ""
-    ec2 = resource("ec2", region_name=REGION)
+    for region in REGIONS:
+        ec2 = resource("ec2", region_name=region)
 
-    if VOLUMES and not TAGS:
-        for volume in VOLUMES:
-            volume_counts = {}
-            snapshots = get_vol_snaps(ec2, event['account'], volume)
+        if VOLUMES and not TAGS:
+            for volume in VOLUMES:
+                volume_counts = {}
+                snapshots = get_vol_snaps(ec2, event['account'], volume)
+                if snapshots:
+                    purge_snapshots(volume, snapshots, volume_counts)
+                    print_summary(volume_counts)
+                else:
+                    print("No snapshots found with volume id: {}".format(volume))
+        elif TAGS and not VOLUMES:
+            tag_counts = {}
+            tag_string = " ".join("{}={}".format(key, val) for
+                                                (key, val) in TAGS.iteritems())
+            snapshots = get_tag_snaps(ec2, event['account'])
             if snapshots:
-                purge_snapshots(volume, snapshots, volume_counts)
-                print_summary(volume_counts)
+                purge_snapshots(tag_string, snapshots, tag_counts)
+                print_summary(tag_counts)
             else:
-                print("No snapshots found with volume id: {}".format(volume))
-    elif TAGS and not VOLUMES:
-        tag_counts = {}
-        tag_string = " ".join("{}={}".format(key, val) for
-                                            (key, val) in TAGS.iteritems())
-        snapshots = get_tag_snaps(ec2, event['account'])
-        if snapshots:
-            purge_snapshots(tag_string, snapshots, tag_counts)
-            print_summary(tag_counts)
+                print("No snapshots found with tags: {}".format(tag_string))
         else:
-            print("No snapshots found with tags: {}".format(tag_string))
-    else:
-        print("You must populate either the VOLUMES OR the TAGS variable.")
+            print("You must populate either the VOLUMES OR the TAGS variable.")
